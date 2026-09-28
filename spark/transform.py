@@ -56,14 +56,6 @@ clean_df = (
     df
     .dropDuplicates(["premium_id"])
 
-    .filter(
-        col("policy_id").isNotNull()
-    )
-
-    .filter(
-        col("premium_amount").isNotNull()
-    )
-
     .withColumn(
         "premium_amount",
         col("premium_amount").cast("decimal(18,2)")
@@ -73,6 +65,10 @@ clean_df = (
         "payment_date",
         to_date(col("payment_date"))
     )
+
+    .filter(col("policy_id").isNotNull())
+    .filter(col("premium_amount").isNotNull())
+    .filter(col("payment_date").isNotNull())
 
     .withColumn(
         "processed_at",
