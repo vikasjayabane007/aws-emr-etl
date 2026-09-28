@@ -1,9 +1,11 @@
 # ============================================================
-# S3 - Data Bucket
+# S3 DATA BUCKET
+# Stores raw, curated, and gold data
 # ============================================================
 
 resource "aws_s3_bucket" "data" {
-  bucket = "${var.project_name}-${var.environment}-data"
+  bucket        = "${var.project_name}-${var.environment}-data"
+  force_destroy = true
 
   tags = {
     Project     = var.project_name
@@ -13,11 +15,13 @@ resource "aws_s3_bucket" "data" {
 
 
 # ============================================================
-# S3 - Spark Scripts Bucket
+# S3 SCRIPTS BUCKET
+# Stores Spark scripts used by EMR
 # ============================================================
 
 resource "aws_s3_bucket" "scripts" {
-  bucket = "${var.project_name}-${var.environment}-scripts"
+  bucket        = "${var.project_name}-${var.environment}-scripts"
+  force_destroy = true
 
   tags = {
     Project     = var.project_name
@@ -27,11 +31,13 @@ resource "aws_s3_bucket" "scripts" {
 
 
 # ============================================================
-# S3 - EMR Logs Bucket
+# S3 LOGS BUCKET
+# Stores EMR/Spark logs
 # ============================================================
 
 resource "aws_s3_bucket" "logs" {
-  bucket = "${var.project_name}-${var.environment}-logs"
+  bucket        = "${var.project_name}-${var.environment}-logs"
+  force_destroy = true
 
   tags = {
     Project     = var.project_name
@@ -41,17 +47,15 @@ resource "aws_s3_bucket" "logs" {
 
 
 # ============================================================
-# Upload Spark Transformation Script
+# UPLOAD TRANSFORM SPARK SCRIPT
 # ============================================================
 
 resource "aws_s3_object" "transform_script" {
   bucket = aws_s3_bucket.scripts.id
-
-  key = "spark/transform.py"
+  key    = "spark/transform.py"
 
   source = "${path.module}/../spark/transform.py"
-
-  etag = filemd5("${path.module}/../spark/transform.py")
+  etag   = filemd5("${path.module}/../spark/transform.py")
 
   tags = {
     Project     = var.project_name
@@ -61,17 +65,15 @@ resource "aws_s3_object" "transform_script" {
 
 
 # ============================================================
-# Upload Spark Aggregation Script
+# UPLOAD AGGREGATE SPARK SCRIPT
 # ============================================================
 
 resource "aws_s3_object" "aggregate_script" {
   bucket = aws_s3_bucket.scripts.id
-
-  key = "spark/aggregate.py"
+  key    = "spark/aggregate.py"
 
   source = "${path.module}/../spark/aggregate.py"
-
-  etag = filemd5("${path.module}/../spark/aggregate.py")
+  etag   = filemd5("${path.module}/../spark/aggregate.py")
 
   tags = {
     Project     = var.project_name

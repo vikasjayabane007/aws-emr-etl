@@ -50,5 +50,7 @@ resource "aws_emr_cluster" "etl_cluster" {
   tags = {
     Project     = var.project_name
     Environment = var.environment
+
+    "for-use-with-amazon-emr-managed-policies" = "true"
   }
 }

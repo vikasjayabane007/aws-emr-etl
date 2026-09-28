@@ -9,6 +9,8 @@ resource "aws_vpc" "etl_vpc" {
 
   tags = {
     Name = "${var.project_name}-${var.environment}-vpc"
+
+    "for-use-with-amazon-emr-managed-policies" = "true"
   }
 }
 
@@ -26,6 +28,8 @@ resource "aws_subnet" "emr_subnet" {
 
   tags = {
     Name = "${var.project_name}-${var.environment}-emr-subnet"
+
+    "for-use-with-amazon-emr-managed-policies" = "true"
   }
 }
 
