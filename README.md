@@ -284,4 +284,256 @@ Terraform provisions resources including:
 - VPC
 - Subnet
 - Internet Gateway
--
+- Route table
+- EMR cluster
+- Lambda function
+- Step Functions state machine
+- S3 event notification
+- Glue Data Catalog resources
+
+---
+
+## Running the Pipeline
+
+Create a sample file named:
+
+```text
+test-premiums.csv
+```
+
+Upload it:
+
+```bash
+aws s3 cp test-premiums.csv \
+  s3://emr-etl-pipeline-dev-data/raw/premiums/test-premiums.csv \
+  --profile etl-dev \
+  --region us-east-2
+```
+
+No additional command is required.
+
+The upload triggers:
+
+```text
+S3
+ ↓
+Lambda
+ ↓
+Step Functions
+ ↓
+EMR / Spark Transformation
+ ↓
+Curated Parquet
+ ↓
+EMR / Spark Aggregation
+ ↓
+Gold Parquet
+```
+
+---
+
+## Checking Curated Output
+
+```bash
+aws s3 ls \
+  s3://emr-etl-pipeline-dev-data/curated/premiums/ \
+  --recursive \
+  --profile etl-dev \
+  --region us-east-2
+```
+
+---
+
+## Checking Gold Output
+
+```bash
+aws s3 ls \
+  s3://emr-etl-pipeline-dev-data/gold/premiums/ \
+  --recursive \
+  --profile etl-dev \
+  --region us-east-2
+```
+
+---
+
+## Glue Data Catalog
+
+The project includes Terraform configuration for a Glue Data Catalog database and a crawler intended to catalog the gold Parquet dataset.
+
+Target:
+
+```text
+s3://emr-etl-pipeline-dev-data/gold/premiums/
+```
+
+The intended analytics architecture is:
+
+```text
+Gold Parquet
+     │
+     ▼
+Glue Data Catalog
+     │
+     ▼
+Amazon Athena
+     │
+     ▼
+SQL Analytics
+```
+
+### Current limitation
+
+During development, creation of the Glue crawler returned an AWS `AccessDeniedException` stating that the account was denied access.
+
+IAM policy simulation confirmed that the deployment identity had both:
+
+```text
+glue:CreateCrawler → allowed
+iam:PassRole       → allowed
+```
+
+Therefore, the crawler portion was not successfully completed during the initial implementation.
+
+The core ETL pipeline through gold Parquet output was successfully executed independently of the crawler.
+
+---
+
+## Infrastructure Lessons
+
+This project also demonstrates several operational AWS concepts.
+
+### Terraform state and drift
+
+Terraform tracks deployed resources in its state.
+
+If a Terraform-managed EMR cluster is manually terminated in AWS, a subsequent:
+
+```bash
+terraform apply
+```
+
+detects that the cluster is missing and attempts to recreate it.
+
+For infrastructure managed by Terraform, lifecycle operations should generally be performed through Terraform rather than manually through the AWS Console.
+
+### IAM PassRole
+
+The EMR service role requires permission to pass the EC2 instance role used by cluster instances.
+
+The project therefore explicitly grants:
+
+```text
+iam:PassRole
+```
+
+for the custom EMR EC2 role.
+
+### EMR service policy
+
+The EMR service role uses:
+
+```text
+AmazonEMRServicePolicy_v2
+```
+
+Resources used by the EMR managed policy are tagged appropriately with:
+
+```text
+for-use-with-amazon-emr-managed-policies = true
+```
+
+### EC2 service quotas
+
+EMR cluster sizing is subject to the AWS account's EC2 vCPU quotas.
+
+The cluster configuration must use an EMR-supported instance type while remaining within the account's available EC2 quota.
+
+---
+
+## Cleanup
+
+EMR clusters incur charges while running, including while the cluster is in the `WAITING` state.
+
+To remove the project infrastructure:
+
+```bash
+cd terraform
+terraform plan -destroy
+```
+
+Then:
+
+```bash
+terraform destroy
+```
+
+After destruction, verify that Terraform no longer tracks resources:
+
+```bash
+terraform state list
+```
+
+The project's S3 buckets use `force_destroy`, allowing Terraform to remove their project data during infrastructure cleanup.
+
+---
+
+## Key Concepts Demonstrated
+
+This project demonstrates:
+
+- Infrastructure as Code with Terraform
+- Event-driven data ingestion
+- S3 event notifications
+- Lambda-based validation
+- Step Functions orchestration
+- EMR cluster provisioning
+- Distributed processing with Apache Spark
+- PySpark ETL
+- CSV-to-Parquet conversion
+- Partitioned data lake design
+- Curated and gold data layers
+- Business-level aggregation
+- IAM service roles and `iam:PassRole`
+- AWS networking for EMR
+- Terraform state and infrastructure drift
+- AWS service quotas
+- Glue Data Catalog integration
+
+---
+
+## Future Improvements
+
+Potential enhancements include:
+
+- Athena queries over the gold dataset
+- Direct Glue Catalog table registration
+- Amazon QuickSight dashboards
+- Incremental aggregation instead of rebuilding the full gold dataset
+- Apache Iceberg or Delta Lake tables
+- Data quality and reconciliation rules
+- Quarantine handling for invalid records
+- CloudWatch monitoring and alarms
+- Private subnets and VPC endpoints
+- EMR auto-termination
+- EMR Serverless for intermittent workloads
+- CI/CD with GitHub Actions
+- Terraform remote state
+- Automated integration tests
+
+---
+
+## Purpose
+
+This project was built as a hands-on AWS Data Engineering implementation to demonstrate how multiple AWS services can be combined into a production-style ETL architecture.
+
+The core pipeline successfully demonstrates:
+
+```text
+S3
+→ Lambda
+→ Step Functions
+→ EMR
+→ Spark / PySpark
+→ Curated Parquet
+→ Gold Parquet
+```
