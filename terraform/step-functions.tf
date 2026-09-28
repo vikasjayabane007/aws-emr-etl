@@ -38,10 +38,11 @@ resource "aws_iam_policy" "step_functions_emr_policy" {
         Effect = "Allow"
 
         Action = [
-          "elasticmapreduce:AddJobFlowSteps",
-          "elasticmapreduce:DescribeStep",
-          "elasticmapreduce:DescribeCluster"
-        ]
+  "elasticmapreduce:AddJobFlowSteps",
+  "elasticmapreduce:DescribeStep",
+  "elasticmapreduce:DescribeCluster",
+  "elasticmapreduce:CancelSteps"
+]
 
         Resource = "*"
       }
